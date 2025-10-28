@@ -1,6 +1,6 @@
 import { Calendar, Clock, FileText, Trash2, Loader2, Search, X, Mail, Edit2, Check, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { Meeting } from '../lib/supabase';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -30,6 +30,7 @@ export const MeetingHistory = ({ meetings = [], onDelete, onView, onSendEmail, o
     return page;
   });
   const [sentMeetingIds, setSentMeetingIds] = useState<Set<string>>(new Set());
+  const isFirstMount = useRef(true);
 
   // Sauvegarder la page courante dans le localStorage
   useEffect(() => {
@@ -116,8 +117,13 @@ export const MeetingHistory = ({ meetings = [], onDelete, onView, onSendEmail, o
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedMeetings = filteredMeetings.slice(startIndex, endIndex);
 
-  // Reset page quand les filtres changent
+  // Reset page quand les filtres changent (mais pas au montage initial)
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    console.log('🔄 MeetingHistory: Filtres changés, reset à page 1');
     setCurrentPage(1);
   }, [searchTitle, searchDate]);
   const formatDate = (dateString: string) => {
