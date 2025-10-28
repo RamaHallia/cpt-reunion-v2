@@ -23,8 +23,16 @@ export const MeetingHistory = ({ meetings = [], onDelete, onView, onSendEmail, o
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const saved = localStorage.getItem('meetingHistoryPage');
+    return saved ? parseInt(saved, 10) : 1;
+  });
   const [sentMeetingIds, setSentMeetingIds] = useState<Set<string>>(new Set());
+
+  // Sauvegarder la page courante dans le localStorage
+  useEffect(() => {
+    localStorage.setItem('meetingHistoryPage', currentPage.toString());
+  }, [currentPage]);
 
   // Charger les IDs des réunions qui ont des emails envoyés
   useEffect(() => {
@@ -93,12 +101,20 @@ export const MeetingHistory = ({ meetings = [], onDelete, onView, onSendEmail, o
 
   // Pagination
   const totalPages = Math.ceil(filteredMeetings.length / ITEMS_PER_PAGE);
+
+  // Ajuster la page courante si elle dépasse le nombre total de pages
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedMeetings = filteredMeetings.slice(startIndex, endIndex);
 
   // Reset page quand les filtres changent
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTitle, searchDate]);
   const formatDate = (dateString: string) => {
