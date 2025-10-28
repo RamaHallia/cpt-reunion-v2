@@ -699,8 +699,10 @@ function App() {
       setIsStartingRecording(false);
     }
     
-    // Timer pour vérifier le quota toutes les 10 secondes pendant l'enregistrement
-    const quotaCheckInterval = window.setInterval(async () => {
+    // Fonction de vérification du quota pendant l'enregistrement
+    const recordingStartTime = Date.now();
+
+    const checkQuotaDuringRecording = async () => {
       try {
         const { data: subscription } = await supabase
           .from('user_subscriptions')
@@ -709,30 +711,44 @@ function App() {
           .maybeSingle();
 
         if (subscription && subscription.plan_type === 'starter') {
-          const currentRecordingMinutes = Math.ceil(recordingTime / 60);
+          // Calculer le temps écoulé depuis le début de l'enregistrement
+          const elapsedSeconds = Math.floor((Date.now() - recordingStartTime) / 1000);
+          const currentRecordingMinutes = Math.ceil(elapsedSeconds / 60);
           const totalUsage = subscription.minutes_used_this_month + currentRecordingMinutes;
 
           console.log('🔍 Vérification quota pendant enregistrement:', {
             minutesUsedThisMonth: subscription.minutes_used_this_month,
+            elapsedSeconds,
             currentRecordingMinutes,
             totalUsage,
             quota: subscription.minutes_quota,
             wouldExceed: totalUsage >= subscription.minutes_quota
           });
 
-          // Si le quota est dépassé, arrêter l'enregistrement
+          // Si le quota est dépassé ou sera dépassé, arrêter l'enregistrement
           if (totalUsage >= subscription.minutes_quota) {
             console.warn('🚫 Quota atteint pendant l\'enregistrement, arrêt automatique');
-            clearInterval(quotaCheckInterval);
-            (window as any).quotaCheckInterval = null;
+            if ((window as any).quotaCheckInterval) {
+              clearInterval((window as any).quotaCheckInterval);
+              (window as any).quotaCheckInterval = null;
+            }
             alert('🚫 Quota de minutes atteint !\n\nVotre enregistrement a été arrêté automatiquement car vous avez atteint votre quota de 600 minutes ce mois-ci.\n\nL\'enregistrement en cours sera sauvegardé.');
             stopRecording();
+            return true; // Quota dépassé
           }
         }
+        return false; // Quota OK
       } catch (error) {
         console.error('❌ Erreur lors de la vérification du quota:', error);
+        return false;
       }
-    }, 10000); // Vérifier toutes les 10 secondes (au lieu de 60)
+    };
+
+    // Vérifier immédiatement au démarrage
+    checkQuotaDuringRecording();
+
+    // Timer pour vérifier le quota toutes les 5 secondes pendant l'enregistrement
+    const quotaCheckInterval = window.setInterval(checkQuotaDuringRecording, 5000);
     
     // Stocker l'interval ID pour pouvoir le nettoyer plus tard
     (window as any).quotaCheckInterval = quotaCheckInterval;
