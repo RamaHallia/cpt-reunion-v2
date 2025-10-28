@@ -732,8 +732,9 @@ function App() {
               clearInterval((window as any).quotaCheckInterval);
               (window as any).quotaCheckInterval = null;
             }
-            alert('🚫 Quota de minutes atteint !\n\nVotre enregistrement a été arrêté automatiquement car vous avez atteint votre quota de 600 minutes ce mois-ci.\n\nL\'enregistrement en cours sera sauvegardé.');
+            // Arrêter l'enregistrement IMMÉDIATEMENT avant d'afficher l'alerte
             stopRecording();
+            alert('🚫 Quota de minutes atteint !\n\nVotre enregistrement a été arrêté automatiquement car vous avez atteint votre quota de 600 minutes ce mois-ci.\n\nL\'enregistrement en cours sera sauvegardé.');
             return true; // Quota dépassé
           }
         }
