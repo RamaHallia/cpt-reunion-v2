@@ -120,7 +120,6 @@ function App() {
   const [isStartingRecording, setIsStartingRecording] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [selectedRecordingMode, setSelectedRecordingMode] = useState<'microphone' | 'system' | 'visio'>('microphone');
-  const stopRecordingRef = useRef<() => void>(() => {});
 
   const {
     tasks: backgroundTasks,
@@ -157,10 +156,6 @@ function App() {
   const liveTranscriptRef = useRef<string>('');
   const recentChunksRef = useRef<string[]>([]);
 
-  // Mettre à jour la ref stopRecording à chaque changement
-  useEffect(() => {
-    stopRecordingRef.current = stopRecording;
-  }, [stopRecording]);
 
   useEffect(() => {
     // Si on est sur le callback Gmail, ne pas exécuter la logique normale
@@ -733,27 +728,12 @@ function App() {
           // Si le quota est dépassé ou sera dépassé, arrêter l'enregistrement
           if (totalUsage >= subscription.minutes_quota) {
             console.warn('🚫 Quota atteint pendant l\'enregistrement, arrêt automatique');
-            console.log('🔍 État avant arrêt:', {
-              isRecording,
-              isPaused,
-              stopRecordingType: typeof stopRecording,
-              stopRecordingExists: !!stopRecording
-            });
-
             if ((window as any).quotaCheckInterval) {
               clearInterval((window as any).quotaCheckInterval);
               (window as any).quotaCheckInterval = null;
             }
-
-            try {
-              console.log('⏹️ Tentative d\'arrêt de l\'enregistrement via stopRecordingRef...');
-              stopRecordingRef.current();
-              console.log('✅ stopRecordingRef.current() appelé avec succès');
-            } catch (error) {
-              console.error('❌ Erreur lors de l\'appel à stopRecordingRef.current():', error);
-            }
-
             alert('🚫 Quota de minutes atteint !\n\nVotre enregistrement a été arrêté automatiquement car vous avez atteint votre quota de 600 minutes ce mois-ci.\n\nL\'enregistrement en cours sera sauvegardé.');
+            stopRecording();
             return true; // Quota dépassé
           }
         }
