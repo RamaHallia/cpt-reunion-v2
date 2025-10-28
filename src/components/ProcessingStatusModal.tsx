@@ -25,46 +25,58 @@ export const ProcessingStatusModal = ({ userId, onOpenReport }: ProcessingStatus
   useEffect(() => {
     // Charger immédiatement au montage
     loadTasks();
-    
+
     // Polling toutes les 2 secondes (plus réactif)
     const interval = setInterval(() => {
       console.log('🔄 Polling background_tasks...');
       loadTasks();
     }, 2000);
-    
-    // Écouter les changements en temps réel
-    const channel = `background_tasks_${userId}_${Date.now()}`;
-    console.log('🎧 Souscription Realtime:', channel);
-    
-    const subscription = supabase
-      .channel(channel)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'background_tasks',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('🔔 Changement de tâche détecté:', payload);
-          loadTasks();
-          
-          // Si une tâche est complétée, notifier
-          if (payload.new && (payload.new as any).status === 'completed') {
-            setHasNewCompletion(true);
-            setTimeout(() => setHasNewCompletion(false), 3000);
+
+    // Écouter les changements en temps réel (avec protection contre les erreurs)
+    let subscription: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
+      const channel = `background_tasks_${userId}_${Date.now()}`;
+      console.log('🎧 Souscription Realtime:', channel);
+
+      subscription = supabase
+        .channel(channel)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'background_tasks',
+            filter: `user_id=eq.${userId}`
+          },
+          (payload) => {
+            console.log('🔔 Changement de tâche détecté:', payload);
+            loadTasks();
+
+            // Si une tâche est complétée, notifier
+            if (payload.new && (payload.new as any).status === 'completed') {
+              setHasNewCompletion(true);
+              setTimeout(() => setHasNewCompletion(false), 3000);
+            }
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Statut Realtime:', status);
-      });
+        )
+        .subscribe((status) => {
+          console.log('📡 Statut Realtime:', status);
+        });
+    } catch (error) {
+      console.warn('⚠️ Erreur Realtime (non bloquante):', error);
+    }
 
     return () => {
       console.log('🧹 Nettoyage ProcessingStatusModal');
       clearInterval(interval);
-      supabase.removeChannel(subscription);
+      if (subscription) {
+        try {
+          supabase.removeChannel(subscription);
+        } catch (error) {
+          console.warn('⚠️ Erreur nettoyage Realtime:', error);
+        }
+      }
     };
   }, [userId]);
 
