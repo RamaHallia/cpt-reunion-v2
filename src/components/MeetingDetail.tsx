@@ -723,7 +723,7 @@ export const MeetingDetail = ({ meeting, onBack, onUpdate }: MeetingDetailProps)
                 <span className="md:text-lg">Retour à l'historique</span>
               </button>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto pb-6 sm:pb-0">
                 {isEditing ? (
                   <>
                     <button
@@ -754,23 +754,39 @@ export const MeetingDetail = ({ meeting, onBack, onUpdate }: MeetingDetailProps)
                     
                     {/* Bouton télécharger audio */}
                     {meeting.audio_url && (
-                      <div className="flex flex-col gap-2 flex-1 sm:flex-initial">
+                      <div className="relative flex-1 sm:flex-initial">
                         <button
                           onClick={audioAvailable === false ? checkAudioAvailability : handleDownloadAudio}
-                          disabled={isDownloadingAudio}
-                          className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all shadow-sm font-semibold text-sm justify-center ${
-                            audioAvailable === false
+                          disabled={isDownloadingAudio || (audioTimeRemaining?.includes('Expiré') ?? false)}
+                          className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all shadow-sm font-semibold text-sm justify-center w-full ${
+                            audioTimeRemaining?.includes('Expiré')
+                              ? 'bg-gray-400 text-white cursor-not-allowed'
+                              : audioAvailable === false
                               ? 'bg-amber-500 text-white hover:bg-amber-600'
                               : isDownloadingAudio
                               ? 'bg-blue-400 text-white cursor-wait'
                               : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
                           }`}
-                          title={audioAvailable === false ? 'Cliquez pour revérifier la disponibilité' : 'Télécharger l\'audio'}
+                          title={
+                            audioTimeRemaining?.includes('Expiré')
+                              ? 'Audio expiré (24h dépassées)'
+                              : audioAvailable === false
+                              ? 'Cliquez pour revérifier la disponibilité'
+                              : audioTimeRemaining
+                              ? `Télécharger l'audio (${audioTimeRemaining})`
+                              : 'Télécharger l\'audio'
+                          }
                         >
                           {isDownloadingAudio ? (
                             <>
                               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               <span className="hidden sm:inline">Téléchargement...</span>
+                            </>
+                          ) : audioTimeRemaining?.includes('Expiré') ? (
+                            <>
+                              <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                              <span className="hidden sm:inline">Audio expiré</span>
+                              <span className="sm:hidden">Expiré</span>
                             </>
                           ) : audioAvailable === false ? (
                             <>
@@ -786,9 +802,9 @@ export const MeetingDetail = ({ meeting, onBack, onUpdate }: MeetingDetailProps)
                             </>
                           )}
                         </button>
-                        {audioTimeRemaining && audioAvailable && (
-                          <div className="text-xs text-center">
-                            <span className={`font-semibold ${audioTimeRemaining.includes('Expiré') ? 'text-red-600' : audioTimeRemaining.includes('minutes') && !audioTimeRemaining.includes('h') ? 'text-amber-600' : 'text-blue-600'}`}>
+                        {audioTimeRemaining && audioAvailable && !audioTimeRemaining.includes('Expiré') && (
+                          <div className="absolute -bottom-5 left-0 right-0 text-xs text-center whitespace-nowrap">
+                            <span className={`font-semibold ${audioTimeRemaining.includes('minutes') && !audioTimeRemaining.includes('h') ? 'text-amber-600' : 'text-blue-600'}`}>
                               ⏰ {audioTimeRemaining}
                             </span>
                           </div>
