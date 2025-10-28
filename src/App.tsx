@@ -699,7 +699,7 @@ function App() {
       setIsStartingRecording(false);
     }
     
-    // Timer pour vérifier le quota toutes les 60 secondes pendant l'enregistrement
+    // Timer pour vérifier le quota toutes les 10 secondes pendant l'enregistrement
     const quotaCheckInterval = window.setInterval(async () => {
       try {
         const { data: subscription } = await supabase
@@ -711,19 +711,28 @@ function App() {
         if (subscription && subscription.plan_type === 'starter') {
           const currentRecordingMinutes = Math.ceil(recordingTime / 60);
           const totalUsage = subscription.minutes_used_this_month + currentRecordingMinutes;
-          
+
+          console.log('🔍 Vérification quota pendant enregistrement:', {
+            minutesUsedThisMonth: subscription.minutes_used_this_month,
+            currentRecordingMinutes,
+            totalUsage,
+            quota: subscription.minutes_quota,
+            wouldExceed: totalUsage >= subscription.minutes_quota
+          });
+
           // Si le quota est dépassé, arrêter l'enregistrement
           if (totalUsage >= subscription.minutes_quota) {
             console.warn('🚫 Quota atteint pendant l\'enregistrement, arrêt automatique');
             clearInterval(quotaCheckInterval);
-            alert('🚫 Quota de minutes atteint !\n\nVotre enregistrement a été arrêté automatiquement car vous avez atteint votre quota de 600 minutes ce mois-ci.\n\nL\'enregistrement sera sauvegardé.');
-            handleStopRecording();
+            (window as any).quotaCheckInterval = null;
+            alert('🚫 Quota de minutes atteint !\n\nVotre enregistrement a été arrêté automatiquement car vous avez atteint votre quota de 600 minutes ce mois-ci.\n\nL\'enregistrement en cours sera sauvegardé.');
+            stopRecording();
           }
         }
       } catch (error) {
-        console.error('Erreur lors de la vérification du quota:', error);
+        console.error('❌ Erreur lors de la vérification du quota:', error);
       }
-    }, 60000); // Vérifier toutes les 60 secondes
+    }, 10000); // Vérifier toutes les 10 secondes (au lieu de 60)
     
     // Stocker l'interval ID pour pouvoir le nettoyer plus tard
     (window as any).quotaCheckInterval = quotaCheckInterval;

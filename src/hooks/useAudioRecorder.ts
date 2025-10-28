@@ -249,10 +249,12 @@ export const useAudioRecorder = () => {
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
+      console.log('⏸️ Mise en pause de l\'enregistrement');
       mediaRecorderRef.current.pause();
       setIsPaused(true);
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     }
   }, [isRecording, isPaused]);
@@ -293,8 +295,11 @@ export const useAudioRecorder = () => {
       setAudioStream(null);
 
       if (timerRef.current) {
+        console.log('⏹️ Arrêt du timer d\'enregistrement');
         clearInterval(timerRef.current);
         timerRef.current = null;
+      } else {
+        console.warn('⚠️ Timer déjà arrêté ou non initialisé');
       }
       // Cleanup WebAudio
       try { processorRef.current?.disconnect(); } catch {}
