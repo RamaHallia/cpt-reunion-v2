@@ -15,7 +15,7 @@ interface MeetingHistoryProps {
 
 const ITEMS_PER_PAGE = 10;
 
-export const MeetingHistory = ({ meetings, onDelete, onView, onSendEmail, onUpdateMeetings, isLoading = false }: MeetingHistoryProps) => {
+export const MeetingHistory = ({ meetings = [], onDelete, onView, onSendEmail, onUpdateMeetings, isLoading = false }: MeetingHistoryProps) => {
   const [searchTitle, setSearchTitle] = useState('');
   const [searchDate, setSearchDate] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -29,6 +29,8 @@ export const MeetingHistory = ({ meetings, onDelete, onView, onSendEmail, onUpda
   // Charger les IDs des réunions qui ont des emails envoyés
   useEffect(() => {
     const loadSentEmails = async () => {
+      if (!meetings || meetings.length === 0) return;
+
       const meetingIds = meetings.map(m => m.id);
       if (meetingIds.length === 0) return;
 
@@ -72,11 +74,15 @@ export const MeetingHistory = ({ meetings, onDelete, onView, onSendEmail, onUpda
   }, [meetings]);
 
   const filteredMeetings = useMemo(() => {
+    if (!meetings || !Array.isArray(meetings)) return [];
+
     return meetings.filter((meeting) => {
-      const matchesTitle = meeting.title.toLowerCase().includes(searchTitle.toLowerCase());
+      if (!meeting) return false;
+
+      const matchesTitle = meeting.title?.toLowerCase().includes(searchTitle.toLowerCase()) ?? false;
 
       let matchesDate = true;
-      if (searchDate) {
+      if (searchDate && meeting.created_at) {
         const meetingDate = new Date(meeting.created_at).toISOString().split('T')[0];
         matchesDate = meetingDate === searchDate;
       }
