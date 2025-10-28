@@ -66,54 +66,65 @@ export const SetupReminder = ({ userId, onNavigateToSettings }: SetupReminderPro
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 animate-slideDown">
-      <div className="bg-gradient-to-r from-coral-500 via-sunset-500 to-peach-500 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Icône et Message */}
-            <div className="flex items-center gap-4 flex-1">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
-                  <Mail className="w-6 h-6 text-coral-600" />
+    <>
+      {/* Fond flou */}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fadeIn" onClick={handleDismiss}></div>
+
+      {/* Modal centré */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div className="pointer-events-auto max-w-2xl w-full animate-scaleIn">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+            {/* Header avec gradient */}
+            <div className="bg-gradient-to-r from-coral-500 via-sunset-500 to-peach-500 px-8 py-6 relative">
+              <button
+                onClick={handleDismiss}
+                className="absolute top-4 right-4 text-white hover:text-coral-100 transition-colors p-2 rounded-lg hover:bg-white/10"
+                title="Fermer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="flex items-center gap-4 pr-12">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                  <Mail className="w-8 h-8 text-coral-600" />
                 </div>
-              </div>
-              
-              <div className="flex-1">
-                <h3 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5" />
-                  Bienvenue ! Configurez votre compte pour commencer
-                </h3>
-                <p className="text-white/90 text-sm">
-                  Pour envoyer vos comptes-rendus par email, configurez votre méthode d'envoi et votre signature professionnelle dans les paramètres.
-                </p>
+
+                <div className="flex-1">
+                  <h3 className="text-white font-bold text-2xl mb-1 flex items-center gap-2">
+                    <AlertCircle className="w-6 h-6" />
+                    Bienvenue ! Configurez votre compte pour commencer
+                  </h3>
+                </div>
               </div>
             </div>
 
-            {/* Boutons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                onClick={handleGoToSettings}
-                className="bg-white text-coral-600 px-6 py-2.5 rounded-xl font-semibold hover:bg-coral-50 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 transform hover:scale-105"
-              >
-                <Settings className="w-5 h-5" />
-                Configurer maintenant
-              </button>
-              
-              <button
-                onClick={handleDismiss}
-                className="text-white hover:text-coral-100 transition-colors p-2 rounded-lg hover:bg-white/10"
-                title="Fermer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            {/* Corps du modal */}
+            <div className="px-8 py-6">
+              <p className="text-gray-700 text-lg leading-relaxed mb-6">
+                Pour envoyer vos comptes-rendus par email, configurez votre méthode d'envoi et votre signature professionnelle dans les paramètres.
+              </p>
+
+              <div className="flex items-center gap-3 justify-end">
+                <button
+                  onClick={handleDismiss}
+                  className="px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                >
+                  Plus tard
+                </button>
+
+                <button
+                  onClick={handleGoToSettings}
+                  className="bg-gradient-to-r from-coral-500 to-sunset-500 text-white px-8 py-3 rounded-xl font-semibold hover:from-coral-600 hover:to-sunset-600 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 transform hover:scale-105"
+                >
+                  <Settings className="w-5 h-5" />
+                  Configurer maintenant
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Ligne décorative */}
-      <div className="h-1 bg-gradient-to-r from-coral-600 via-sunset-600 to-peach-600"></div>
-    </div>
+    </>
   );
 };
 
