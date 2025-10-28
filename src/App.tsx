@@ -96,7 +96,7 @@ function App() {
   const [historyTab, setHistoryTab] = useState<'meetings' | 'emails'>('meetings'); // Onglet d'historique
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
-  const [result, setResult] = useState<{ title: string; transcript: string; summary: string; audioUrl?: string | null } | null>(null);
+  const [result, setResult] = useState<{ title: string; transcript: string; summary: string; audioUrl?: string | null; meetingId?: string } | null>(null);
   const [partialTranscripts, setPartialTranscripts] = useState<string[]>([]);
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -584,7 +584,7 @@ function App() {
         
         // Afficher le résumé immédiatement (sans audio pour l'instant)
         console.log('🎯 Définition du résultat:', { title: finalTitle, summaryLength: summary?.length });
-        setResult({ title: finalTitle, transcript: displayTranscript, summary, audioUrl: null });
+        setResult({ title: finalTitle, transcript: displayTranscript, summary, audioUrl: null, meetingId: created?.id });
         loadMeetings(true); // Force reload après création
         
         // Upload audio en arrière-plan (non-bloquant)
@@ -1501,7 +1501,9 @@ function App() {
             summary={result.summary}
             suggestions={suggestions}
             userId={user?.id || ''}
+            meetingId={result.meetingId}
             onClose={() => setResult(null)}
+            onUpdate={() => loadMeetings(true)}
           />
         </div>
         </>

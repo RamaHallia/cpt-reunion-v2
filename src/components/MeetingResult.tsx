@@ -1,4 +1,4 @@
-import { ArrowLeft, Calendar, FileText, Mail, Plus, Trash2, Download, Upload, Copy, FileDown } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Mail, Plus, Trash2, Download, Upload, Copy, FileDown, Edit2, Save, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase, EmailAttachment } from '../lib/supabase';
 import { generatePDFFromHTML } from '../services/pdfGenerator';
@@ -19,10 +19,12 @@ interface MeetingResultProps {
     timestamp?: number;
   }>;
   userId: string;
+  meetingId?: string;
   onClose: () => void;
+  onUpdate?: () => void;
 }
 
-export const MeetingResult = ({ title, transcript, summary, suggestions = [], userId, onClose }: MeetingResultProps) => {
+export const MeetingResult = ({ title, transcript, summary, suggestions = [], userId, meetingId, onClose, onUpdate }: MeetingResultProps) => {
   const [activeTab, setActiveTab] = useState<'summary' | 'transcript' | 'suggestions'>('summary');
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [showEmailComposer, setShowEmailComposer] = useState(false);
@@ -32,6 +34,10 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [initialEmailBody, setInitialEmailBody] = useState<string>('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(title);
+  const [editedSummary, setEditedSummary] = useState(summary);
+  const [editedTranscript, setEditedTranscript] = useState(transcript);
 
   // Charger les paramètres utilisateur
   useEffect(() => {
@@ -61,9 +67,43 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
     loadSettings();
   }, [userId]);
 
+  const handleSave = async () => {
+    if (!meetingId) {
+      alert('Impossible de sauvegarder : ID de réunion manquant');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({
+          title: editedTitle,
+          summary: editedSummary,
+          display_transcript: editedTranscript,
+        })
+        .eq('id', meetingId);
+
+      if (error) throw error;
+
+      setIsEditing(false);
+      if (onUpdate) onUpdate();
+      alert('✓ Modifications enregistrées');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      alert('Erreur lors de la sauvegarde');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedTitle(title);
+    setEditedSummary(summary);
+    setEditedTranscript(transcript);
+    setIsEditing(false);
+  };
+
   const handleDownloadPDF = async () => {
     try {
-      await generatePDFFromHTML(title, summary);
+      await generatePDFFromHTML(editedTitle, editedSummary);
     } catch (error) {
       console.error('Erreur lors de la génération du PDF:', error);
       alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
@@ -82,7 +122,7 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
   };
 
   const handleCopyReport = async () => {
-    const report = `${title}\n\n${summary}`;
+    const report = `${editedTitle}\n\n${editedSummary}`;
     try {
       await navigator.clipboard.writeText(report);
       setCopySuccess(true);
@@ -95,9 +135,9 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
   // Préparer le body initial de l'email
   const prepareInitialEmailBody = async (): Promise<string> => {
     return await generateEmailBody({
-      title,
+      title: editedTitle,
       date: formatDate(),
-      summary,
+      summary: editedSummary,
       attachments: [],
     });
   };
@@ -485,34 +525,64 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
                 <span className="md:text-lg">Fermer</span>
               </button>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopyReport}
-                  className="p-2 md:p-3 bg-gray-100 hover:bg-gray-200 text-cocoa-700 rounded-lg transition-all shadow-sm"
-                  title="Copier le rapport"
-                >
-                  <Copy className="w-4 h-4 md:w-5 md:h-5" />
-                </button>
-                <button
-                  onClick={handleDownloadPDF}
-                  className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm font-semibold"
-                  title="Télécharger en PDF"
-                >
-                  <FileDown className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="hidden sm:inline text-sm">Télécharger PDF</span>
-                </button>
-                <button
-                  onClick={async () => {
-                    const emailBody = await prepareInitialEmailBody();
-                    setInitialEmailBody(emailBody);
-                    setShowEmailComposer(true);
-                  }}
-                  className="flex items-center gap-1 md:gap-2 px-3 md:px-5 py-2 md:py-3 bg-gradient-to-r from-coral-500 to-coral-600 text-white hover:from-coral-600 hover:to-coral-700 rounded-lg md:rounded-xl transition-all font-semibold shadow-lg shadow-coral-500/30 text-sm md:text-base"
-                >
-                  <Mail className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="hidden sm:inline">Envoyer par email</span>
-                  <span className="sm:hidden">Email</span>
-                </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="flex items-center gap-1 md:gap-2 px-3 md:px-5 py-2 md:py-3 text-cocoa-600 hover:text-cocoa-800 hover:bg-orange-50 rounded-lg md:rounded-xl transition-colors font-semibold text-sm md:text-base"
+                    >
+                      <X className="w-4 h-4 md:w-5 md:h-5" />
+                      <span>Annuler</span>
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      className="flex items-center gap-1 md:gap-2 px-3 md:px-5 py-2 md:py-3 bg-gradient-to-r from-coral-500 to-coral-600 text-white hover:from-coral-600 hover:to-coral-700 rounded-lg md:rounded-xl transition-all shadow-lg shadow-coral-500/30 text-sm md:text-base"
+                    >
+                      <Save className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="font-semibold">Enregistrer</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleCopyReport}
+                      className="p-2 md:p-3 bg-gray-100 hover:bg-gray-200 text-cocoa-700 rounded-lg transition-all shadow-sm"
+                      title="Copier le rapport"
+                    >
+                      <Copy className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
+                    <button
+                      onClick={handleDownloadPDF}
+                      className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm font-semibold text-sm"
+                      title="Télécharger en PDF"
+                    >
+                      <FileDown className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="hidden sm:inline">Télécharger PDF</span>
+                      <span className="sm:hidden">PDF</span>
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const emailBody = await prepareInitialEmailBody();
+                        setInitialEmailBody(emailBody);
+                        setShowEmailComposer(true);
+                      }}
+                      className="flex items-center gap-1 md:gap-2 px-3 md:px-5 py-2 md:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 rounded-lg md:rounded-xl transition-all font-semibold shadow-lg shadow-green-500/30 text-sm md:text-base"
+                    >
+                      <Mail className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="hidden sm:inline">Envoyer par email</span>
+                      <span className="sm:hidden">Email</span>
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-1 md:gap-2 px-3 md:px-5 py-2 md:py-3 text-cocoa-600 hover:text-cocoa-800 hover:bg-orange-50 rounded-lg md:rounded-xl transition-colors font-semibold border-2 border-transparent hover:border-orange-200 text-sm md:text-base"
+                    >
+                      <Edit2 className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="hidden sm:inline">Modifier</span>
+                      <span className="sm:hidden">Modifier</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
             
@@ -527,9 +597,18 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
                 <FileText className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-coral-600 to-sunset-600 bg-clip-text text-transparent mb-2 md:mb-4 break-words">
-                  {title}
-                </h1>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    className="text-xl md:text-4xl font-bold text-cocoa-800 mb-2 md:mb-4 w-full border-b-2 border-coral-500 focus:outline-none bg-transparent"
+                  />
+                ) : (
+                  <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-coral-600 to-sunset-600 bg-clip-text text-transparent mb-2 md:mb-4 break-words">
+                    {editedTitle}
+                  </h1>
+                )}
                 <div className="flex items-center gap-3 md:gap-6 text-cocoa-600 font-medium text-xs md:text-base">
                   <div className="flex items-center gap-1 md:gap-2">
                     <Calendar className="w-4 h-4 md:w-5 md:h-5 text-sunset-500" />
@@ -586,19 +665,34 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
         <div className="overflow-y-auto p-4 md:p-10 flex-1">
           {activeTab === 'summary' ? (
             <div className="max-w-4xl">
-              <div className="prose prose-slate max-w-none">
-                <div className="text-cocoa-800 whitespace-pre-wrap leading-relaxed text-lg">
-                  {renderSummaryWithBold(summary)}
+              {isEditing ? (
+                <textarea
+                  value={editedSummary}
+                  onChange={(e) => setEditedSummary(e.target.value)}
+                  className="w-full min-h-[400px] p-6 border-2 border-orange-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-coral-500 text-cocoa-800 text-lg leading-relaxed"
+                />
+              ) : (
+                <div className="prose prose-slate max-w-none">
+                  <div className="text-cocoa-800 whitespace-pre-wrap leading-relaxed text-lg">
+                    {renderSummaryWithBold(editedSummary)}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : activeTab === 'transcript' ? (
             <div className="max-w-4xl">
-              <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-8 border-2 border-orange-100">
-                <div className="max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-coral-300 scrollbar-track-coral-100">
-                  {transcript ? (
+              {isEditing ? (
+                <textarea
+                  value={editedTranscript}
+                  onChange={(e) => setEditedTranscript(e.target.value)}
+                  className="w-full min-h-[400px] p-6 border-2 border-orange-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-coral-500 text-cocoa-800 text-lg leading-relaxed"
+                />
+              ) : (
+                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-8 border-2 border-orange-100">
+                  <div className="max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-coral-300 scrollbar-track-coral-100">
+                    {editedTranscript ? (
                     <div className="space-y-3">
-                      {transcript.split(/--- \d+s ---/).map((chunk, index) => {
+                      {editedTranscript.split(/--- \d+s ---/).map((chunk, index) => {
                         if (!chunk.trim()) return null;
                         
                         const timeInSeconds = index * 15;
@@ -652,6 +746,7 @@ export const MeetingResult = ({ title, transcript, summary, suggestions = [], us
                   )}
                 </div>
               </div>
+              )}
             </div>
           ) : (
             <div className="max-w-4xl">
