@@ -84,22 +84,28 @@ export const useBackgroundProcessing = (userId: string | undefined) => {
 
     loadTasks();
 
-    // Écouter les changements en temps réel
-    const channel = supabase
-      .channel('background_tasks_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'background_tasks',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          loadTasks();
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    // Écouter les changements en temps réel (avec protection contre les erreurs)
+    try {
+      channel = supabase
+        .channel('background_tasks_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'background_tasks',
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            loadTasks();
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      console.warn('⚠️ Erreur Realtime (non bloquante):', error);
+    }
 
     // Polling pour les mises à jour (backup si realtime ne fonctionne pas)
     const interval = setInterval(() => {
@@ -107,7 +113,13 @@ export const useBackgroundProcessing = (userId: string | undefined) => {
     }, 5000);
 
     return () => {
-      channel.unsubscribe();
+      if (channel) {
+        try {
+          channel.unsubscribe();
+        } catch (error) {
+          console.warn('⚠️ Erreur nettoyage Realtime:', error);
+        }
+      }
       clearInterval(interval);
     };
   }, [userId, loadTasks]);
