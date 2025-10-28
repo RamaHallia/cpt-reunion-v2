@@ -25,12 +25,15 @@ export const MeetingHistory = ({ meetings = [], onDelete, onView, onSendEmail, o
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(() => {
     const saved = localStorage.getItem('meetingHistoryPage');
-    return saved ? parseInt(saved, 10) : 1;
+    const page = saved ? parseInt(saved, 10) : 1;
+    console.log('📄 MeetingHistory: Page initiale chargée depuis localStorage:', page);
+    return page;
   });
   const [sentMeetingIds, setSentMeetingIds] = useState<Set<string>>(new Set());
 
   // Sauvegarder la page courante dans le localStorage
   useEffect(() => {
+    console.log('💾 MeetingHistory: Sauvegarde page dans localStorage:', currentPage);
     localStorage.setItem('meetingHistoryPage', currentPage.toString());
   }, [currentPage]);
 

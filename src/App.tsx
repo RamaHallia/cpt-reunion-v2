@@ -1310,7 +1310,7 @@ function App() {
               {meetingsError && historyTab === 'meetings' && (
                 <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
                   <span>{meetingsError}</span>
-                  <button 
+                  <button
                     onClick={() => {
                       setMeetingsError(null);
                       loadMeetings(true); // Force reload sur retry
@@ -1322,11 +1322,12 @@ function App() {
                 </div>
               )}
 
-              {/* Contenu des onglets */}
-              {historyTab === 'meetings' ? (
-                <MeetingHistory 
-                  meetings={meetings} 
-                  onDelete={handleDelete} 
+              {/* Contenu des onglets - Garder les deux montés pour préserver l'état */}
+              <div style={{ display: historyTab === 'meetings' ? 'block' : 'none' }}>
+                <MeetingHistory
+                  key="meeting-history-persistent"
+                  meetings={meetings}
+                  onDelete={handleDelete}
                   onView={handleViewMeeting}
                   onSendEmail={async (meeting) => {
                     // Préparer le corps de l'email avec signature
@@ -1373,14 +1374,15 @@ function App() {
                     setMeetingToEmail(meeting);
                   }}
                   onUpdateMeetings={() => loadMeetings(true)}
-                  isLoading={isMeetingsLoading} 
+                  isLoading={isMeetingsLoading}
                 />
-              ) : (
-                <EmailHistory 
-                  userId={user?.id || ''} 
+              </div>
+              <div style={{ display: historyTab === 'emails' ? 'block' : 'none' }}>
+                <EmailHistory
+                  userId={user?.id || ''}
                   onViewMeeting={handleViewMeetingById}
                 />
-              )}
+              </div>
             </div>
           ) : view === 'upload' ? (
             <AudioUpload
