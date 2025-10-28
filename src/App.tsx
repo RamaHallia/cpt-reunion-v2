@@ -23,7 +23,6 @@ import { ProcessingStatusModal } from './components/ProcessingStatusModal';
 import { ProcessingModal } from './components/ProcessingModal';
 import { EmailComposer } from './components/EmailComposer';
 import { EmailSuccessModal } from './components/EmailSuccessModal';
-import { QuotaReachedModal } from './components/QuotaReachedModal';
 import { supabase, Meeting } from './lib/supabase';
 import { useBackgroundProcessing } from './hooks/useBackgroundProcessing';
 import { transcribeAudio, generateSummary } from './services/transcription';
@@ -121,7 +120,6 @@ function App() {
   const [isStartingRecording, setIsStartingRecording] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [selectedRecordingMode, setSelectedRecordingMode] = useState<'microphone' | 'system' | 'visio'>('microphone');
-  const [showQuotaReachedModal, setShowQuotaReachedModal] = useState(false);
 
   const {
     tasks: backgroundTasks,
@@ -734,15 +732,9 @@ function App() {
               clearInterval((window as any).quotaCheckInterval);
               (window as any).quotaCheckInterval = null;
             }
-            // Arrêter le timer d'analyse partielle
-            if (partialAnalysisTimerRef.current) {
-              clearInterval(partialAnalysisTimerRef.current);
-              partialAnalysisTimerRef.current = null;
-            }
-            // Arrêter l'enregistrement IMMÉDIATEMENT SANS processRecording
+            // Arrêter l'enregistrement IMMÉDIATEMENT avant d'afficher l'alerte
             stopRecording();
-            // Afficher le modal de quota
-            setShowQuotaReachedModal(true);
+            alert('🚫 Quota de minutes atteint !\n\nVotre enregistrement a été arrêté automatiquement car vous avez atteint votre quota de 600 minutes ce mois-ci.\n\nL\'enregistrement en cours sera sauvegardé.');
             return true; // Quota dépassé
           }
         }
@@ -1681,29 +1673,6 @@ function App() {
         onClose={() => setShowEmailSuccessModal(false)}
         recipientCount={emailSuccessData.recipientCount}
         method={emailSuccessData.method}
-      />
-
-      {/* Modal de quota atteint */}
-      <QuotaReachedModal
-        isOpen={showQuotaReachedModal}
-        onGenerateSummary={() => {
-          setShowQuotaReachedModal(false);
-          // Déclencher le traitement de l'enregistrement
-          if (audioBlob) {
-            processRecording();
-          }
-        }}
-        onClose={() => {
-          setShowQuotaReachedModal(false);
-          // Nettoyer sans générer de résumé
-          resetRecording();
-          setRecordingNotes('');
-          setMeetingTitle('');
-          liveTranscriptRef.current = '';
-          setPartialTranscripts([]);
-          setCurrentMeetingId(null);
-          lastProcessedSizeRef.current = 0;
-        }}
       />
     </div>
   );
