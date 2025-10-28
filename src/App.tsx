@@ -75,9 +75,20 @@ const formatTranscriptWithSeparators = (partialTranscripts: string[]): string =>
 function App() {
   // Détection immédiate du callback Gmail
   const getInitialView = () => {
-    if (window.location.pathname === '/gmail-callback') {
+    const path = window.location.pathname;
+    const hash = window.location.hash.replace('#', '');
+
+    // Callback Gmail a la priorité
+    if (path === '/gmail-callback') {
       return 'gmail-callback' as const;
     }
+
+    // Si un hash valide existe, l'utiliser
+    if (hash && ['record', 'history', 'detail', 'settings', 'upload', 'dashboard'].includes(hash)) {
+      return hash as any;
+    }
+
+    // Par défaut, landing page
     return 'landing' as const;
   };
 
@@ -157,7 +168,7 @@ function App() {
 
     // Restaurer la vue depuis l'URL (hash) au chargement
     const hash = window.location.hash.replace('#', '');
-    if (hash && ['record', 'history', 'upload', 'settings'].includes(hash)) {
+    if (hash && ['record', 'history', 'upload', 'settings', 'dashboard'].includes(hash)) {
       console.log('🔄 Restauration de la vue depuis l\'URL:', hash);
       setView(hash as any);
     } else if (hash === 'detail') {
@@ -165,6 +176,11 @@ function App() {
       console.log('⚠️ Vue detail sans réunion, redirection vers history');
       setView('history');
       window.history.replaceState({ view: 'history' }, '', '#history');
+    } else if (hash && hash !== '') {
+      // Hash invalide, rediriger vers record
+      console.log('⚠️ Hash invalide:', hash, 'redirection vers record');
+      setView('record');
+      window.history.replaceState({ view: 'record' }, '', '#record');
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -173,8 +189,9 @@ function App() {
       if (session?.user && event === 'SIGNED_IN') {
         // Si on a déjà une vue depuis l'URL, ne pas la changer
         const currentHash = window.location.hash.replace('#', '');
-        if (!currentHash || !['record', 'history', 'upload', 'settings'].includes(currentHash)) {
-        setView('record');
+        if (!currentHash || !['record', 'history', 'upload', 'settings', 'dashboard'].includes(currentHash)) {
+          setView('record');
+          window.history.replaceState({ view: 'record' }, '', '#record');
         }
         loadMeetings();
       }
@@ -198,7 +215,7 @@ function App() {
       if (!state || !state.view) {
         // Essayer de lire depuis le hash si pas d'état
         const hash = window.location.hash.replace('#', '');
-        if (hash && ['record', 'history', 'upload', 'settings'].includes(hash)) {
+        if (hash && ['record', 'history', 'upload', 'settings', 'dashboard'].includes(hash)) {
           console.log('🔄 Restauration depuis hash:', hash);
           setView(hash as any);
         } else if (hash === 'detail') {
@@ -206,6 +223,11 @@ function App() {
           console.log('⚠️ Vue detail sans réunion, redirection vers history');
           setView('history');
           window.history.replaceState({ view: 'history' }, '', '#history');
+        } else if (hash && hash !== '') {
+          // Hash invalide
+          console.log('⚠️ Hash invalide:', hash, 'redirection vers record');
+          setView('record');
+          window.history.replaceState({ view: 'record' }, '', '#record');
         }
         return;
       }
@@ -221,12 +243,15 @@ function App() {
 
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['record', 'history', 'upload', 'settings'].includes(hash)) {
+      if (hash && ['record', 'history', 'upload', 'settings', 'dashboard'].includes(hash)) {
         console.log('🔄 Hash changé:', hash);
         setView(hash as any);
       } else if (hash === 'detail') {
         // Ne rien faire - laisser le useEffect gérer la redirection si nécessaire
         console.log('🔄 Hash detail détecté, conservation de la vue actuelle');
+      } else if (hash && hash !== '') {
+        // Hash invalide
+        console.log('⚠️ Hash invalide:', hash);
       }
     };
 
